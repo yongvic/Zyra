@@ -7,7 +7,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CouplesModule } from './modules/couples/couples.module';
-import { ChatModule } from './modules/chat/chat.module';
+// import { ChatModule } from './modules/chat/chat.module';
 import { GamesModule } from './modules/games/games.module';
 import { MemoriesModule } from './modules/memories/memories.module';
 import { DatabaseModule } from './database/database.module';
@@ -27,7 +27,7 @@ import { DatabaseModule } from './database/database.module';
     AuthModule,
     UsersModule,
     CouplesModule,
-    ChatModule,
+    // ChatModule,
     GamesModule,
     MemoriesModule,
   ],

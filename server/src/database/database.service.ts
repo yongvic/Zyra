@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Pool, QueryResult } from 'pg';
 
 @Injectable()
 export class DatabaseService {
   private pool: Pool;
 
-  constructor(databasePool: Pool) {
+  constructor(@Inject('DATABASE_POOL') databasePool: Pool) {
     this.pool = databasePool;
   }
 

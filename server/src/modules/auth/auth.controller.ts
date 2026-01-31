@@ -15,32 +15,48 @@ import { Response } from 'express';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // ===== GOOGLE AUTH =====
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   googleLogin() {
-    // Initiated by passport
+    // Passport handles this
   }
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(req: any, res: Response) {
+  async googleCallback(@Req() req: any, @Res() res: Response) {
     const token = await this.authService.validateGoogleUser(req.user);
-    // Redirect to frontend with token
-    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+
+    res.redirect(
+      `${process.env.FRONTEND_URL}/auth/callback?token=${token}`,
+    );
   }
+
+  // ===== REGISTER =====
 
   @Post('register')
-  async register(body: { email: string; password: string; name: string }) {
-    return this.authService.register(body.email, body.password, body.name);
+  async register(
+    @Body() body: { email: string; password: string; name: string },
+  ) {
+    return this.authService.register(
+      body.email,
+      body.password,
+      body.name,
+    );
   }
 
+  // ===== LOGIN =====
+
   @Post('login')
-  async login(body: { email: string; password: string }) {
+  async login(@Body() body: { email: string; password: string }) {
     return this.authService.login(body.email, body.password);
   }
 
+  // ===== REFRESH TOKEN =====
+
   @Post('refresh')
-  async refreshToken(body: { refreshToken: string }) {
+  async refreshToken(@Body() body: { refreshToken: string }) {
     return this.authService.refreshToken(body.refreshToken);
   }
 }
