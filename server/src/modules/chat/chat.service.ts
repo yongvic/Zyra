@@ -1,38 +1,39 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
+import { PrismaService } from '../../prisma/prisma.service'; // Import PrismaService
+import { ChatMessage } from '@prisma/client'; // Import ChatMessage model type
 
 @Injectable()
 export class ChatService {
-  constructor(private database: DatabaseService) {}
+  constructor(private prisma: PrismaService) {} // Inject PrismaService
 
   async saveMessage(
     coupleId: string,
     senderId: string,
-    message: string,
+    content: string, // Renamed 'message' to 'content' to match Prisma schema
     messageType: string = 'text',
-  ) {
-    const result = await this.database.query(
-      `INSERT INTO chat_messages (couple_id, sender_id, content, message_type)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, couple_id, sender_id, content, message_type, created_at`,
-      [coupleId, senderId, message, messageType],
-    );
-    return result.rows[0];
+  ): Promise<ChatMessage> {
+    return this.prisma.chatMessage.create({
+      data: {
+        coupleId: coupleId,
+        senderId: senderId,
+        content: content,
+        messageType: messageType,
+      },
+    });
   }
 
-  async getMessages(coupleId: string, limit: number = 50) {
-    const result = await this.database.query(
-      `SELECT * FROM chat_messages WHERE couple_id = $1 
-       ORDER BY created_at DESC LIMIT $2`,
-      [coupleId, limit],
-    );
-    return result.rows.reverse();
+  async getMessages(coupleId: string, limit: number = 50): Promise<ChatMessage[]> {
+    const messages = await this.prisma.chatMessage.findMany({
+      where: { coupleId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return messages.reverse();
   }
 
-  async deleteMessage(messageId: string) {
-    await this.database.query(
-      'DELETE FROM chat_messages WHERE id = $1',
-      [messageId],
-    );
+  async deleteMessage(messageId: string): Promise<ChatMessage> {
+    return this.prisma.chatMessage.delete({
+      where: { id: messageId },
+    });
   }
 }

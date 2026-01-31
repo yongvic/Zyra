@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  password  String?
+  googleId  String?   @map("google_id")
+  avatarUrl String?   @map("avatar_url")
+  bio       String?
+  birthDate DateTime? @map("birth_date")
+  provider  String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  couplesAsUserOne Couple[]       @relation("UserOneCouples")
+  couplesAsUserTwo Couple[]       @relation("UserTwoCouples")
+  memories         Memory[]
+  gameScores       GameScore[]
+  playlists        Playlist[]
+  playlistSongs    PlaylistSong[] @relation("UserPlaylistSongs")
+  sentMessages     ChatMessage[]  @relation("SenderMessages")
+  @@map("users") // Explicitly map to the 'users' table
+}
+
+model Couple {
+  id              String    @id @default(uuid())
+  userOneId       String    @map("user_one_id")
+  userTwoId       String    @map("user_two_id")
+  anniversaryDate DateTime? @map("anniversary_date")
+  coupleName      String?   @map("couple_name")
+  coupleAvatarUrl String?   @map("couple_avatar_url")
+  inviteCode      String?   @map("invite_code") @unique
+  inviteAccepted  Boolean   @map("invite_accepted") @default(false)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  userOne          User             @relation("UserOneCouples", fields: [userOneId], references: [id])
+  userTwo          User             @relation("UserTwoCouples", fields: [userTwoId], references: [id])
+  chatMessages     ChatMessage[]
+  games            Game[]
+  memories         Memory[]
+  playlists        Playlist[]
+  coupleActivities CoupleActivity[]
+  gameScores       GameScore[]
+
+  @@unique([userOneId, userTwoId])
+  @@map("couples") // Explicitly map to the 'couples' table
+}
+
+model ChatMessage {
+  id          String   @id @default(uuid())
+  coupleId    String   @map("couple_id")
+  senderId    String   @map("sender_id")
+  content     String
+  messageType String   @map("message_type") @default("text")
+  mediaUrl    String?  @map("media_url")
+  isRead      Boolean  @map("is_read") @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  couple Couple @relation(fields: [coupleId], references: [id])
+  sender User   @relation("SenderMessages", fields: [senderId], references: [id])
+
+  @@map("chat_messages") // Explicitly map to the 'chat_messages' table
+}
+
+model Game {
+  id           String   @id @default(uuid())
+  coupleId     String   @map("couple_id")
+  gameType     String   @map("game_type")
+  currentRound Int      @map("current_round") @default(1)
+  isActive     Boolean  @map("is_active") @default(true)
+  gameData     Json?    @map("game_data")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  couple     Couple      @relation(fields: [coupleId], references: [id])
+  gameScores GameScore[]
+
+  @@map("games") // Explicitly map to the 'games' table
+}
+
+model GameScore {
+  id          String    @id @default(uuid())
+  gameId      String    @map("game_id")
+  coupleId    String    @map("couple_id")
+  playerId    String    @map("player_id")
+  score       Int?
+  answers     Json?
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  game   Game   @relation(fields: [gameId], references: [id])
+  couple Couple @relation(fields: [coupleId], references: [id])
+  player User   @relation(fields: [playerId], references: [id])
+
+  @@map("game_scores") // Explicitly map to the 'game_scores' table
+}
+
+model Memory {
+  id          String    @id @default(uuid())
+  coupleId    String    @map("couple_id")
+  creatorId   String    @map("creator_id")
+  title       String
+  description String?
+  memoryDate  DateTime? @map("memory_date")
+  mediaUrls   String[]  @map("media_urls")
+  tags        String[]
+  isFavorite  Boolean   @map("is_favorite") @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  couple  Couple @relation(fields: [coupleId], references: [id])
+  creator User   @relation(fields: [creatorId], references: [id])
+
+  @@map("memories") // Explicitly map to the 'memories' table
+}
+
+model Playlist {
+  id          String   @id @default(uuid())
+  coupleId    String   @map("couple_id")
+  title       String
+  description String?
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  couple  Couple         @relation(fields: [coupleId], references: [id])
+  creator User           @relation(fields: [createdBy], references: [id])
+  songs   PlaylistSong[]
+
+  @@map("playlists") // Explicitly map to the 'playlists' table
+}
+
+model PlaylistSong {
+  id         String   @id @default(uuid())
+  playlistId String   @map("playlist_id")
+  spotifyId  String?  @map("spotify_id")
+  songTitle  String   @map("song_title")
+  artistName String   @map("artist_name")
+  albumName  String?  @map("album_name")
+  durationMs Int?     @map("duration_ms")
+  addedBy    String   @map("added_by")
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  playlist Playlist @relation(fields: [playlistId], references: [id])
+  user     User     @relation("UserPlaylistSongs", fields: [addedBy], references: [id])
+
+  @@map("playlist_songs") // Explicitly map to the 'playlist_songs' table
+}
+
+model CoupleActivity {
+  id           String   @id @default(uuid())
+  coupleId     String   @map("couple_id")
+  activityType String   @map("activity_type")
+  activityData Json?    @map("activity_data")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  couple Couple @relation(fields: [coupleId], references: [id])
+
+  @@map("couple_activities") // Explicitly map to the 'couple_activities' table
+}

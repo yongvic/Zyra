@@ -1,15 +1,23 @@
 'use client';
 
-import React from "react"
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Lock, Bell, Users } from 'lucide-react';
+import api from '@/lib/api'; // Import the API client
 
 interface UserProfile {
   id: string;
   name: string;
   email: string;
+  provider: 'local' | 'google';
+}
+
+interface CoupleInfo {
+  id: string;
+  coupleName?: string | null;
+  createdAt: string;
+  userOneId: string;
+  userTwoId: string;
 }
 
 export default function SettingsPage() {
@@ -28,42 +36,147 @@ export default function SettingsPage() {
     games: true,
     memories: true,
   });
-  const [coupleInfo, setCoupleInfo] = useState({
-    partnerName: 'En attente...',
-    connectedSince: null,
-  });
+  const [coupleInfo, setCoupleInfo] = useState<CoupleInfo | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [partnerEmail, setPartnerEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsed = JSON.parse(userData);
-      setUser(parsed);
-      setFormData({
-        name: parsed.name,
-        email: parsed.email,
-      });
-    }
+    const fetchSettingsData = async () => {
+      setErrorMessage('');
+      try {
+        const userData = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        if (userData) {
+          const parsedUser: UserProfile = JSON.parse(userData);
+          setUser(parsedUser);
+          setFormData({
+            name: parsedUser.name,
+            email: parsedUser.email,
+          });
+
+          // Fetch fresh user data from API
+          const fetchedUser = await api.users.me();
+          setUser(fetchedUser);
+          setFormData({
+            name: fetchedUser.name,
+            email: fetchedUser.email,
+          });
+          localStorage.setItem('user', JSON.stringify(fetchedUser)); // Update local storage
+
+          // Fetch couple info
+          const fetchedCoupleInfo = await api.couples.getMine();
+          setCoupleInfo(fetchedCoupleInfo);
+        } else {
+          // Redirect to login if no user data
+          // router.push('/login');
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || 'Failed to load settings data.');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSettingsData();
   }, []);
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Update via API
-    setSuccessMessage('Profil mis à jour avec succès');
-    setTimeout(() => setSuccessMessage(''), 3000);
-  };
+  useEffect(() => {
+    const fetchPartner = async () => {
+      if (!coupleInfo || !user) {
+        setPartnerEmail(null);
+        return;
+      }
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+      const partnerId =
+        coupleInfo.userOneId === user.id ? coupleInfo.userTwoId : coupleInfo.userOneId;
+
+      try {
+        const partner = await api.users.getById(partnerId);
+        setPartnerEmail(partner.email);
+      } catch {
+        setPartnerEmail(null);
+      }
+    };
+
+    fetchPartner();
+  }, [coupleInfo?.id, user?.id]);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwords.new !== passwords.confirm) {
-      alert('Les mots de passe ne correspondent pas');
+    setSuccessMessage('');
+    setErrorMessage('');
+    if (!user) {
+      setErrorMessage('User not found.');
       return;
     }
-    // TODO: Update password via API
-    setPasswords({ current: '', new: '', confirm: '' });
-    setSuccessMessage('Mot de passe changé avec succès');
-    setTimeout(() => setSuccessMessage(''), 3000);
+    try {
+      const updatedUser = await api.users.updateMe({
+        name: formData.name,
+        email: formData.email,
+      });
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser)); // Update local storage
+      setSuccessMessage('Profil mis à jour avec succès');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Échec de la mise à jour du profil.');
+      console.error(err);
+    }
   };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessMessage('');
+    setErrorMessage('');
+    if (passwords.new !== passwords.confirm) {
+      setErrorMessage('Les nouveaux mots de passe ne correspondent pas.');
+      return;
+    }
+    if (!user) {
+      setErrorMessage('User not found.');
+      return;
+    }
+
+    try {
+      await api.post('/auth/change-password', {
+        current: passwords.current,
+        new: passwords.new,
+      });
+      setPasswords({ current: '', new: '', confirm: '' });
+      setSuccessMessage('Mot de passe changé avec succès');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Échec du changement de mot de passe.');
+      console.error(err);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">💕</div>
+          <p className="text-gray-600">Chargement des paramètres...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+        <p>{errorMessage}</p>
+      </div>
+    );
+  }
+
+  const partnerName = partnerEmail || (coupleInfo ? 'Votre partenaire' : 'En attente...');
+  const connectedSince = coupleInfo?.createdAt
+    ? new Date(coupleInfo.createdAt).toLocaleDateString('fr-FR')
+    : 'N/A';
+
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -76,6 +189,11 @@ export default function SettingsPage() {
       {successMessage && (
         <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
           {successMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+          {errorMessage}
         </div>
       )}
 
@@ -230,14 +348,14 @@ export default function SettingsPage() {
           <div>
             <p className="text-sm text-gray-600 mb-1">Partenaire</p>
             <p className="text-lg font-semibold text-gray-900">
-              {coupleInfo.partnerName}
+              {partnerName}
             </p>
           </div>
-          {coupleInfo.connectedSince && (
+          {coupleInfo?.createdAt && (
             <div>
               <p className="text-sm text-gray-600 mb-1">Connecté depuis</p>
               <p className="text-lg font-semibold text-gray-900">
-                {new Date(coupleInfo.connectedSince).toLocaleDateString('fr-FR')}
+                {connectedSince}
               </p>
             </div>
           )}

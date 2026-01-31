@@ -1,55 +1,105 @@
 'use client';
 
-import React from "react"
-
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Heart, Plus, Trash2 } from 'lucide-react';
+import api from '@/lib/api';
 
 interface Memory {
   id: string;
   title: string;
-  description: string;
-  image_url?: string;
-  category: string;
-  created_at: string;
+  description?: string | null;
+  tags: string[];
+  createdAt: string;
 }
 
 export default function MemoriesPage() {
-  const [memories, setMemories] = useState<Memory[]>([
-    {
-      id: '1',
-      title: 'Notre première rencontre',
-      description: 'Le jour où nous nous sommes rencontrés au café',
-      image_url: '',
-      category: 'spécial',
-      created_at: '2024-01-15',
-    },
-  ]);
+  const [memories, setMemories] = useState<Memory[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: 'général',
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleAddMemory = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newMemory: Memory = {
-      id: Date.now().toString(),
-      ...formData,
-      created_at: new Date().toISOString(),
+  const coupleId = typeof window !== 'undefined' ? localStorage.getItem('coupleId') : null;
+
+  useEffect(() => {
+    const fetchMemories = async () => {
+      if (!coupleId) {
+        setError('Couple ID not found.');
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const data = await api.memories.listByCouple(coupleId);
+        setMemories(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch memories.');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    setMemories([newMemory, ...memories]);
-    setFormData({ title: '', description: '', category: 'général' });
-    setShowForm(false);
+
+    fetchMemories();
+  }, [coupleId]);
+
+  const handleAddMemory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!coupleId) {
+      setError('Couple ID not found.');
+      return;
+    }
+
+    try {
+      const newMemory = await api.memories.create({
+        coupleId,
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+      });
+      setMemories((prev) => [newMemory, ...prev]);
+      setFormData({ title: '', description: '', category: 'général' });
+      setShowForm(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to add memory.');
+      console.error(err);
+    }
   };
 
-  const handleDeleteMemory = (id: string) => {
-    setMemories(memories.filter((m) => m.id !== id));
+  const handleDeleteMemory = async (id: string) => {
+    try {
+      await api.memories.delete(id);
+      setMemories(memories.filter((m) => m.id !== id));
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete memory.');
+      console.error(err);
+    }
   };
 
   const categories = ['général', 'spécial', 'anniversaire', 'voyage', 'autre'];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">💕</div>
+          <p className="text-gray-600">Chargement des souvenirs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-center">
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -161,10 +211,10 @@ export default function MemoriesPage() {
                   <p className="text-gray-600 mb-2">{memory.description}</p>
                   <div className="flex items-center gap-2">
                     <span className="inline-block px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm font-semibold">
-                      {memory.category}
+                      {memory.tags?.[0] || 'général'}
                     </span>
                     <span className="text-sm text-gray-500">
-                      {new Date(memory.created_at).toLocaleDateString('fr-FR')}
+                      {new Date(memory.createdAt).toLocaleDateString('fr-FR')}
                     </span>
                   </div>
                 </div>

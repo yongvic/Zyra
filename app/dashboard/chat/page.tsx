@@ -1,17 +1,16 @@
 'use client';
 
-import React from "react"
-
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Card } from '@/components/ui/card';
 import { Send, Loader } from 'lucide-react';
+import api from '@/lib/api'; // Import the API client
 
 interface Message {
   id: string;
-  sender_id: string;
+  senderId: string;
   content: string;
-  created_at: string;
+  createdAt: string;
 }
 
 export default function ChatPage() {
@@ -21,17 +20,45 @@ export default function ChatPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
-  const coupleId = typeof window !== 'undefined' ? localStorage.getItem('coupleId') || 'default-couple' : '';
+  const coupleId = typeof window !== 'undefined' ? localStorage.getItem('coupleId') : null;
 
   useEffect(() => {
+    if (!coupleId) {
+      setError('Couple ID not found. Cannot connect to chat.');
+      setIsLoading(false);
+      return;
+    }
+
+    const API_BASE_URL =
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:3001';
+
+    // Fetch historical messages
+    const fetchHistoricalMessages = async () => {
+      try {
+        const historicalData = await api.chat.getMessages(coupleId);
+        setMessages(historicalData);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch historical messages.');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHistoricalMessages();
+
     // Initialize Socket.io
-    const newSocket = io('http://localhost:3001', {
+    const newSocket = io(API_BASE_URL, {
       auth: { token },
+      transports: ['websocket'], // Force websocket transport
     });
 
     newSocket.on('connect', () => {
@@ -57,14 +84,18 @@ export default function ChatPage() {
       setIsConnected(false);
     });
 
+    newSocket.on('connect_error', (err) => {
+      console.error('[Chat] Socket connection error:', err);
+      setError(`Socket connection failed: ${err.message}`);
+    });
+
     setSocket(newSocket);
-    setIsLoading(false);
 
     return () => {
       newSocket.emit('leave', { coupleId, userId: user.id });
       newSocket.close();
     };
-  }, []);
+  }, [coupleId, token, user.id]); // Dependencies for useEffect
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,7 +108,7 @@ export default function ChatPage() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || !socket) return;
+    if (!newMessage.trim() || !socket || !coupleId) return;
 
     socket.emit('message', {
       coupleId,
@@ -92,7 +123,7 @@ export default function ChatPage() {
   const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
 
-    if (socket) {
+    if (socket && coupleId) {
       socket.emit('typing', { coupleId, userId: user.id, isTyping: true });
 
       if (typingTimeoutRef.current) {
@@ -109,6 +140,14 @@ export default function ChatPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader className="w-8 h-8 animate-spin text-pink-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-center">
+        <p>{error}</p>
       </div>
     );
   }
@@ -139,18 +178,22 @@ export default function ChatPage() {
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.senderId === user.id ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-xs px-4 py-2 rounded-lg ${
-                    msg.sender_id === user.id
+                    msg.senderId === user.id
                       ? 'bg-pink-600 text-white rounded-br-none'
                       : 'bg-gray-200 text-gray-900 rounded-bl-none'
                   }`}
                 >
                   <p className="text-sm">{msg.content}</p>
-                  <p className={`text-xs mt-1 ${msg.sender_id === user.id ? 'text-pink-100' : 'text-gray-600'}`}>
-                    {new Date(msg.created_at).toLocaleTimeString()}
+                  <p
+                    className={`text-xs mt-1 ${
+                      msg.senderId === user.id ? 'text-pink-100' : 'text-gray-600'
+                    }`}
+                  >
+                    {new Date(msg.createdAt).toLocaleTimeString()}
                   </p>
                 </div>
               </div>

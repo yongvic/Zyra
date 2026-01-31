@@ -27,12 +27,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   handleConnection(client: Socket) {
+    const token =
+      (client.handshake.auth?.token as string | undefined) ||
+      (typeof client.handshake.headers.authorization === 'string'
+        ? client.handshake.headers.authorization.replace(/^Bearer\s+/i, '')
+        : undefined);
+
+    if (!token) {
+      client.disconnect(true);
+      return;
+    }
+
+    const decoded = this.authService.validateToken(token);
+    if (!decoded) {
+      client.disconnect(true);
+      return;
+    }
+
+    // Attach authenticated user id to the socket (prevents spoofing via client payloads)
+    (client.data as any).userId = decoded.sub;
+
     console.log(`Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
-    this.userSockets.delete(client.id);
+    for (const [userId, sockets] of this.userSockets.entries()) {
+      sockets.delete(client.id);
+      if (sockets.size === 0) {
+        this.userSockets.delete(userId);
+      }
+    }
   }
 
   @SubscribeMessage('join')
@@ -40,13 +65,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = `couple_${data.coupleId}`;
     client.join(room);
 
-    if (!this.userSockets.has(data.userId)) {
-      this.userSockets.set(data.userId, new Set());
+    const userId = (client.data as any).userId || data.userId;
+
+    if (!this.userSockets.has(userId)) {
+      this.userSockets.set(userId, new Set());
     }
-    this.userSockets.get(data.userId)?.add(client.id);
+    this.userSockets.get(userId)?.add(client.id);
 
     this.server.to(room).emit('user_joined', {
-      userId: data.userId,
+      userId,
       timestamp: new Date(),
     });
   }
@@ -56,9 +83,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client: Socket,
     data: { coupleId: string; senderId: string; message: string },
   ) {
+    const senderId = (client.data as any).userId || data.senderId;
     const savedMessage = await this.chatService.saveMessage(
       data.coupleId,
-      data.senderId,
+      senderId,
       data.message,
       'text',
     );
@@ -83,10 +111,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleLeave(client: Socket, data: { coupleId: string; userId: string }) {
     const room = `couple_${data.coupleId}`;
     client.leave(room);
-    this.userSockets.get(data.userId)?.delete(client.id);
+    const userId = (client.data as any).userId || data.userId;
+    this.userSockets.get(userId)?.delete(client.id);
 
     this.server.to(room).emit('user_left', {
-      userId: data.userId,
+      userId,
       timestamp: new Date(),
     });
   }

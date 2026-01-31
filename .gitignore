@@ -50,3 +50,5 @@ logs
 # Temporary
 *.tmp
 temp/
+
+/lib/generated/prisma

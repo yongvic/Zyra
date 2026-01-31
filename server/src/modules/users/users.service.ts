@@ -1,9 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
+import { PrismaService } from '../../prisma/prisma.service'; // Import PrismaService
+import { User } from '@prisma/client'; // Import User model type
+
+type SafeUser = Omit<User, 'password'>;
 
 @Injectable()
 export class UsersService {
-  constructor(private database: DatabaseService) {}
+  constructor(private prisma: PrismaService) {} // Inject PrismaService
+
+  private toSafeUser(user: User): SafeUser {
+    // Never leak password hashes to controllers/clients
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safe } = user;
+    return safe;
+  }
 
   async create(userData: {
     email: string;
@@ -11,48 +21,48 @@ export class UsersService {
     name: string;
     provider: string;
     googleId?: string;
-  }) {
-    const result = await this.database.query(
-      `INSERT INTO users (email, password, name, provider, google_id)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, name, provider, created_at`,
-      [userData.email, userData.password || null, userData.name, userData.provider, userData.googleId || null],
-    );
-    return result.rows[0];
+  }): Promise<SafeUser> {
+    const user = await this.prisma.user.create({
+      data: {
+        email: userData.email,
+        password: userData.password,
+        name: userData.name,
+        provider: userData.provider,
+        googleId: userData.googleId,
+      },
+    });
+    return this.toSafeUser(user);
   }
 
-  async findById(id: string) {
-    const result = await this.database.query(
-      'SELECT id, email, name, provider, created_at FROM users WHERE id = $1',
-      [id],
-    );
-    return result.rows[0] || null;
+  async findById(id: string): Promise<SafeUser | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    return user ? this.toSafeUser(user) : null;
   }
 
-  async findByEmail(email: string) {
-    const result = await this.database.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email],
-    );
-    return result.rows[0] || null;
+  async findByIdWithPassword(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
   }
 
-  async update(id: string, userData: any) {
-    const fields = Object.keys(userData)
-      .map((key, index) => `${key} = $${index + 2}`)
-      .join(', ');
-
-    const result = await this.database.query(
-      `UPDATE users SET ${fields}, updated_at = NOW() WHERE id = $1 RETURNING *`,
-      [id, ...Object.values(userData)],
-    );
-    return result.rows[0];
+  async findByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+    });
   }
 
-  async findAll() {
-    const result = await this.database.query(
-      'SELECT id, email, name, provider, created_at FROM users',
-    );
-    return result.rows;
+  async update(id: string, userData: any): Promise<SafeUser> {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: userData,
+    });
+    return this.toSafeUser(user);
+  }
+
+  async findAll(): Promise<SafeUser[]> {
+    const users = await this.prisma.user.findMany();
+    return users.map((u) => this.toSafeUser(u));
   }
 }

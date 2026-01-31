@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { MessageCircle, Gamepad2, Heart, Music } from 'lucide-react';
 
@@ -18,35 +19,29 @@ export default function Dashboard() {
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-
     if (userData) {
-      const user = JSON.parse(userData);
-      setUser(user);
-    }
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
 
-    // Fetch couple info
-    if (token && user) {
-      fetchCoupleInfo(user.id, token);
-    }
-  }, []);
-
-  const fetchCoupleInfo = async (userId: string, token: string) => {
-    try {
-      const response = await fetch(`http://localhost:3001/couples`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCoupleInfo(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch couple info:', error);
-    } finally {
+      // Fetch couple info only if user is available
+      const fetchCoupleData = async () => {
+        try {
+          const data = await api.couples.getMine();
+          setCoupleInfo(data);
+          if (data && data.id) {
+            localStorage.setItem('coupleId', data.id);
+          }
+        } catch (error) {
+          console.error('Failed to fetch couple info:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchCoupleData();
+    } else {
       setIsLoading(false);
     }
-  };
+  }, []); // Empty dependency array means this runs once on mount
 
   const quickActions = [
     {
@@ -99,7 +94,7 @@ export default function Dashboard() {
         </h1>
         <p className="text-pink-100">
           {coupleInfo
-            ? `Vous êtes connecté avec votre partenaire - ${coupleInfo.name}`
+            ? `Vous êtes connecté avec votre partenaire${coupleInfo.coupleName ? ` - ${coupleInfo.coupleName}` : ''}`
             : 'Invitez votre partenaire pour commencer!'}
         </p>
       </div>

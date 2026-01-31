@@ -5,6 +5,7 @@ import React from "react"
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import { Mail, Lock, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
@@ -13,6 +14,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:3001';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,22 +25,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Invalid credentials');
-      }
-
-      const data = await response.json();
+      const data = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
       router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +96,15 @@ export default function LoginPage() {
               {isLoading ? 'Connexion...' : 'Se connecter'}
             </button>
           </form>
+
+          <div className="mt-4">
+            <a
+              href={`${API_BASE_URL}/auth/google`}
+              className="w-full inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-900 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
+            >
+              Continuer avec Google
+            </a>
+          </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-gray-600 text-sm">

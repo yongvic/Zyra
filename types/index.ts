@@ -1,80 +1,98 @@
-// User Types
+// Shared types aligned with the NestJS API + Prisma model field names (camelCase)
+
 export interface User {
   id: string;
   email: string;
   name: string;
   provider: 'local' | 'google';
-  google_id?: string;
-  created_at: string;
-  updated_at?: string;
+  googleId?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  birthDate?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Couple Types
 export interface Couple {
   id: string;
-  user1_id: string;
-  user2_id: string;
-  name: string;
-  created_at: string;
-  updated_at?: string;
+  userOneId: string;
+  userTwoId: string;
+  anniversaryDate?: string | null;
+  coupleName?: string | null;
+  coupleAvatarUrl?: string | null;
+  inviteCode?: string | null;
+  inviteAccepted: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Chat Types
 export interface ChatMessage {
   id: string;
-  couple_id: string;
-  sender_id: string;
+  coupleId: string;
+  senderId: string;
   content: string;
-  message_type: 'text' | 'image' | 'emoji';
-  created_at: string;
+  messageType: 'text' | 'image' | 'emoji';
+  mediaUrl?: string | null;
+  isRead: boolean;
+  createdAt: string;
 }
 
-// Game Types
 export interface Game {
   id: string;
-  couple_id: string;
-  game_type: string;
-  data: Record<string, any>;
-  created_at: string;
+  coupleId: string;
+  gameType: string;
+  currentRound: number;
+  isActive: boolean;
+  gameData?: Record<string, any> | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GameScore {
   id: string;
-  couple_id: string;
-  game_type: string;
-  winner_id: string;
-  score: number;
-  created_at: string;
+  gameId: string;
+  coupleId: string;
+  playerId: string;
+  score?: number | null;
+  answers?: any | null;
+  completedAt?: string | null;
+  createdAt: string;
 }
 
-// Memory Types
 export interface Memory {
   id: string;
-  couple_id: string;
-  created_by: string;
+  coupleId: string;
+  creatorId: string;
   title: string;
-  description: string;
-  image_url?: string;
-  category: string;
-  created_at: string;
-  updated_at?: string;
+  description?: string | null;
+  memoryDate?: string | null;
+  mediaUrls: string[];
+  tags: string[];
+  isFavorite: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Playlist Types
 export interface Playlist {
   id: string;
-  couple_id: string;
-  name: string;
-  description?: string;
-  created_at: string;
-  updated_at?: string;
+  coupleId: string;
+  title: string;
+  description?: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PlaylistSong {
   id: string;
-  playlist_id: string;
-  song_url: string;
-  created_at: string;
+  playlistId: string;
+  spotifyId?: string | null;
+  songTitle: string;
+  artistName: string;
+  albumName?: string | null;
+  durationMs?: number | null;
+  addedBy: string;
+  addedAt: string;
 }
 
 // Auth Types

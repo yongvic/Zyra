@@ -53,6 +53,21 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
+  // ===== CHANGE PASSWORD =====
+  @Post('change-password')
+  @UseGuards(AuthGuard('jwt'))
+  async changePassword(
+    @Req() req: any,
+    @Body() body: { current: string; new: string; confirm: string },
+  ) {
+    // Note: The frontend should already validate new and confirm match
+    return this.authService.changePassword(
+      req.user.id,
+      body.current,
+      body.new,
+    );
+  }
+
   // ===== REFRESH TOKEN =====
 
   @Post('refresh')

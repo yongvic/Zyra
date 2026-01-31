@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MemoriesController } from './memories.controller';
 import { MemoriesService } from './memories.service';
-import { DatabaseModule } from '../../database/database.module';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [PrismaModule],
   controllers: [MemoriesController],
   providers: [MemoriesService],
   exports: [MemoriesService],

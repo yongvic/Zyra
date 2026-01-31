@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import type { Couple } from '@/types';
 
 export function useCouple() {
@@ -17,7 +17,7 @@ export function useCouple() {
     setError(null);
 
     try {
-      const coupleData = await api.couples.getByUser(token);
+      const coupleData = await api.couples.getMine();
       setCouple(coupleData);
       // Store couple ID for later use
       localStorage.setItem('coupleId', coupleData.id);
@@ -42,7 +42,7 @@ export function useCouple() {
       setError(null);
 
       try {
-        const newCouple = await api.couples.create(token, userId2, coupleName);
+        const newCouple = await api.couples.create(userId2, coupleName);
         setCouple(newCouple);
         localStorage.setItem('coupleId', newCouple.id);
         return { success: true, couple: newCouple };

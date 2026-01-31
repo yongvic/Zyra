@@ -8,7 +8,7 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get(':coupleId/messages')
-  async getMessages(coupleId: string) {
+  async getMessages(@Param('coupleId') coupleId: string) {
     return this.chatService.getMessages(coupleId);
   }
 }
