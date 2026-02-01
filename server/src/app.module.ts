@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -18,11 +16,6 @@ import { PrismaModule } from './prisma/prisma.module'; // Import PrismaModule
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your_jwt_secret',
-      signOptions: { expiresIn: process.env.JWT_EXPIRATION || '7d' },
-    }),
-    PassportModule,
     PrismaModule, // Use PrismaModule instead of DatabaseModule
     AuthModule,
     UsersModule,

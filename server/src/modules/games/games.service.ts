@@ -63,10 +63,11 @@ export class GamesService {
     }
   }
 
-  async getScores(coupleId: string): Promise<GameScore[]> {
+  async getScores(coupleId: string) {
     return this.prisma.gameScore.findMany({
       where: { coupleId },
       orderBy: { score: 'desc' },
+      include: { player: { select: { id: true, name: true } } },
     });
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Heart, Plus, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -94,9 +95,20 @@ export default function MemoriesPage() {
   }
 
   if (error) {
+    const isNoCouple = error.includes('Couple ID not found') || !coupleId;
     return (
-      <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-center">
-        <p>{error}</p>
+      <div className="p-6 bg-white rounded-xl border border-gray-200 text-center max-w-md mx-auto">
+        <Heart className="w-12 h-12 text-pink-300 mx-auto mb-4" />
+        <p className="text-gray-700 mb-4">
+          {isNoCouple
+            ? 'Invitez votre partenaire depuis l\'accueil pour accéder aux souvenirs.'
+            : error}
+        </p>
+        {isNoCouple && (
+          <Link href="/dashboard" className="text-pink-600 font-semibold hover:underline">
+            Aller à l&apos;accueil
+          </Link>
+        )}
       </div>
     );
   }

@@ -140,10 +140,7 @@ export default function SettingsPage() {
     }
 
     try {
-      await api.post('/auth/change-password', {
-        current: passwords.current,
-        new: passwords.new,
-      });
+      await api.auth.changePassword(passwords.current, passwords.new);
       setPasswords({ current: '', new: '', confirm: '' });
       setSuccessMessage('Mot de passe changé avec succès');
       setTimeout(() => setSuccessMessage(''), 3000);

@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Gamepad2, Dices, Brain, HelpCircle, TrendingDown, RotateCw, Sparkles } from 'lucide-react';
 
@@ -49,13 +51,37 @@ const games = [
   },
 ];
 
+interface ScoreEntry {
+  playerId: string;
+  score: number;
+  player?: { name: string };
+}
+
 export default function GamesPage() {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [scores, setScores] = useState<ScoreEntry[]>([]);
+  const [coupleId, setCoupleId] = useState<string | null>(null);
+  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+
+  useEffect(() => {
+    const cid = localStorage.getItem('coupleId');
+    setCoupleId(cid);
+    if (!cid) return;
+    api.games
+      .scores(cid)
+      .then((data: ScoreEntry[]) => setScores(data || []))
+      .catch(() => setScores([]));
+  }, []);
 
   const handlePlayGame = (gameId: string) => {
     setSelectedGame(gameId);
-    // Navigate to game page
-    // router.push(`/dashboard/games/${gameId}`);
+    // TODO: Navigate to game page when implemented
+  };
+
+  const getPlayerLabel = (playerId: string) => {
+    if (playerId === user?.id) return 'Vous';
+    const s = scores.find((x) => x.playerId === playerId);
+    return s?.player?.name || 'Votre partenaire';
   };
 
   return (
@@ -92,31 +118,40 @@ export default function GamesPage() {
       <section>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Classement</h2>
         <Card className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-4 border-b">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center font-bold text-pink-600">
-                  1
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900">Vous</p>
-                  <p className="text-sm text-gray-600">42 points</p>
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-pink-600">👑</div>
+          {!coupleId ? (
+            <div className="text-center py-4">
+              <p className="text-gray-600 mb-4">Invitez votre partenaire pour voir les scores.</p>
+              <Link href="/dashboard" className="text-pink-600 font-semibold hover:underline">
+                Aller à l&apos;accueil
+              </Link>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">
-                  2
+          ) : scores.length === 0 ? (
+            <p className="text-center text-gray-600 py-4">Aucun score encore. Jouez pour commencer!</p>
+          ) : (
+            <div className="space-y-4">
+              {scores.map((entry, i) => (
+                <div
+                  key={entry.playerId}
+                  className="flex items-center justify-between pb-4 border-b last:border-0"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                        i === 0 ? 'bg-pink-100 text-pink-600' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {i + 1}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{getPlayerLabel(entry.playerId)}</p>
+                      <p className="text-sm text-gray-600">{entry.score ?? 0} points</p>
+                    </div>
+                  </div>
+                  {i === 0 && <span className="text-2xl font-bold text-pink-600">👑</span>}
                 </div>
-                <div>
-                  <p className="font-bold text-gray-900">Votre partenaire</p>
-                  <p className="text-sm text-gray-600">38 points</p>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
+          )}
         </Card>
       </section>
     </div>

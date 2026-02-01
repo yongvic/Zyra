@@ -16,32 +16,60 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [coupleInfo, setCoupleInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+
+  const fetchCoupleData = async () => {
+    try {
+      const data = await api.couples.getMine();
+      setCoupleInfo(data);
+      if (data && data.id) {
+        localStorage.setItem('coupleId', data.id);
+      } else {
+        localStorage.removeItem('coupleId');
+      }
+    } catch {
+      setCoupleInfo(null);
+      localStorage.removeItem('coupleId');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-
-      // Fetch couple info only if user is available
-      const fetchCoupleData = async () => {
-        try {
-          const data = await api.couples.getMine();
-          setCoupleInfo(data);
-          if (data && data.id) {
-            localStorage.setItem('coupleId', data.id);
-          }
-        } catch (error) {
-          console.error('Failed to fetch couple info:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchCoupleData();
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        fetchCoupleData();
+      } catch {
+        setIsLoading(false);
+      }
     } else {
       setIsLoading(false);
     }
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
+
+  const handleInvitePartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInviteError('');
+    setInviteLoading(true);
+    try {
+      const data = await api.couples.inviteByEmail(inviteEmail.trim(), inviteName.trim() || 'Notre couple');
+      setCoupleInfo(data);
+      localStorage.setItem('coupleId', data.id);
+      setInviteEmail('');
+      setInviteName('');
+    } catch (err: any) {
+      setInviteError(err?.message || 'Échec de l\'invitation');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
 
   const quickActions = [
     {
@@ -99,7 +127,51 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Quick Actions */}
+      {/* Invite Partner Form - when no couple */}
+      {!coupleInfo && (
+        <Card className="p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Inviter mon partenaire</h2>
+          <p className="text-gray-600 mb-4">
+            Entrez l&apos;email de votre partenaire. Il doit déjà avoir un compte Zyra.
+          </p>
+          <form onSubmit={handleInvitePartner} className="space-y-4 max-w-md">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email du partenaire</label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="partenaire@email.com"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-600"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nom du couple (optionnel)</label>
+              <input
+                type="text"
+                value={inviteName}
+                onChange={(e) => setInviteName(e.target.value)}
+                placeholder="Notre couple"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-600"
+              />
+            </div>
+            {inviteError && (
+              <p className="text-red-600 text-sm">{inviteError}</p>
+            )}
+            <button
+              type="submit"
+              disabled={inviteLoading}
+              className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition font-semibold disabled:opacity-50"
+            >
+              {inviteLoading ? 'Envoi...' : 'Envoyer l\'invitation'}
+            </button>
+          </form>
+        </Card>
+      )}
+
+      {/* Quick Actions - hide when no couple */}
+      {coupleInfo && (
       <section>
         <h2 className="text-2xl font-bold mb-6 text-gray-900">Actions rapides</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -116,8 +188,10 @@ export default function Dashboard() {
           ))}
         </div>
       </section>
+      )}
 
-      {/* Recent Activity */}
+      {/* Recent Activity - hide when no couple */}
+      {coupleInfo && (
       <section>
         <h2 className="text-2xl font-bold mb-6 text-gray-900">Activité récente</h2>
         <Card className="p-8 text-center">
@@ -132,6 +206,7 @@ export default function Dashboard() {
           </Link>
         </Card>
       </section>
+      )}
     </div>
   );
 }

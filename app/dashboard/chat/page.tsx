@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Card } from '@/components/ui/card';
+import Link from 'next/link';
 import { Send, Loader } from 'lucide-react';
 import api from '@/lib/api'; // Import the API client
 
@@ -145,9 +146,19 @@ export default function ChatPage() {
   }
 
   if (error) {
+    const isNoCouple = error.includes('Couple ID not found') || error.includes('coupleId');
     return (
-      <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-center">
-        <p>{error}</p>
+      <div className="p-6 bg-white rounded-xl border border-gray-200 text-center max-w-md mx-auto">
+        <p className="text-gray-700 mb-4">
+          {isNoCouple
+            ? 'Invitez votre partenaire depuis l\'accueil pour accéder au chat.'
+            : error}
+        </p>
+        {isNoCouple && (
+          <Link href="/dashboard" className="text-pink-600 font-semibold hover:underline">
+            Aller à l&apos;accueil
+          </Link>
+        )}
       </div>
     );
   }

@@ -20,6 +20,18 @@ export class CouplesController {
     return this.couplesService.createCouple(req.user.id, body.userId2, body.coupleName);
   }
 
+  @Post('invite')
+  async inviteByEmail(
+    @Req() req: any,
+    @Body() body: { partnerEmail: string; coupleName?: string },
+  ) {
+    return this.couplesService.inviteByEmail(
+      req.user.id,
+      body.partnerEmail,
+      body.coupleName ?? 'Notre couple',
+    );
+  }
+
   @Get(':id')
   async getCouple(@Param('id') id: string) {
     return this.couplesService.getCoupleById(id);

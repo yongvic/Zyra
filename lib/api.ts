@@ -73,6 +73,8 @@ const api = {
     login: (email: string, password: string) => post('/auth/login', { email, password }),
     register: (email: string, password: string, name: string) =>
       post('/auth/register', { email, password, name }),
+    changePassword: (current: string, newPassword: string) =>
+      post('/auth/change-password', { current, new: newPassword }),
     logout: () => {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
@@ -92,6 +94,8 @@ const api = {
   couples: {
     getMine: () => get('/couples'),
     create: (userId2: string, coupleName: string) => post('/couples', { userId2, coupleName }),
+    inviteByEmail: (partnerEmail: string, coupleName: string) =>
+      post('/couples/invite', { partnerEmail, coupleName }),
     getById: (id: string) => get(`/couples/${id}`),
   },
 

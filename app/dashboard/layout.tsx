@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Gamepad2,
   Heart,
+  Music,
   Settings,
   LogOut,
   Menu,
@@ -49,6 +50,7 @@ export default function DashboardLayout({
     { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
     { icon: Gamepad2, label: 'Jeux', href: '/dashboard/games' },
     { icon: Heart, label: 'Souvenirs', href: '/dashboard/memories' },
+    { icon: Music, label: 'Playlist', href: '/dashboard/playlist' },
     { icon: Settings, label: 'Paramètres', href: '/dashboard/settings' },
   ];
 
