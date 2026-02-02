@@ -110,6 +110,28 @@ const api = {
     updateScore: (coupleId: string, gameType: string, winnerId: string) =>
       post('/games/score', { coupleId, gameType, winnerId }),
     scores: (coupleId: string) => get(`/games/scores/${coupleId}`),
+    // Playable sessions
+    sessions: {
+      create: (gameType: string, config?: any) => post('/games/sessions', { gameType, config }),
+      active: (gameType: string) => get(`/games/sessions/active/${gameType}`),
+      get: (sessionId: string) => get(`/games/sessions/${sessionId}`),
+      move: (sessionId: string, moveType: string, moveData?: any) =>
+        post(`/games/sessions/${sessionId}/moves`, { moveType, moveData }),
+      complete: (sessionId: string, winnerUserId?: string | null) =>
+        post(`/games/sessions/${sessionId}/complete`, { winnerUserId }),
+    },
+    questions: {
+      random: (type: string, mode: 'soft' | 'romantic' | 'hot' = 'soft') =>
+        get(`/games/questions/random?type=${encodeURIComponent(type)}&mode=${encodeURIComponent(mode)}`),
+    },
+    daily: {
+      today: (mode: 'soft' | 'romantic' | 'hot' = 'soft') =>
+        get(`/games/daily/today?mode=${encodeURIComponent(mode)}`),
+      submitToday: (payload?: any, mode: 'soft' | 'romantic' | 'hot' = 'soft') =>
+        post('/games/daily/today/submit', { payload, mode }),
+      validateCompletion: (completionId: string) =>
+        post(`/games/daily/completions/${completionId}/validate`, {}),
+    },
   },
 
   memories: {

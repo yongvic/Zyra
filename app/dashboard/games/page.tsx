@@ -1,53 +1,89 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
-import { Gamepad2, Dices, Brain, HelpCircle, TrendingDown, RotateCw, Sparkles } from 'lucide-react';
+import { Gamepad2, Dices, Brain, HelpCircle, TrendingDown, RotateCw, Sparkles, Heart, MessageCircle, Flower2, Sparkle } from 'lucide-react';
 
 const games = [
   {
     id: 'memory',
-    name: 'Memory',
-    description: 'Trouvez les paires de cartes',
+    name: 'Memory Love',
+    description: 'Paires de souvenirs, emojis et mots doux — trouvez-les ensemble',
     icon: Brain,
     color: 'bg-blue-100 text-blue-600',
   },
   {
     id: 'truth-dare',
-    name: 'Truth or Dare',
-    description: 'Répondez aux questions ou relevez les défis',
+    name: 'Truth or Touch',
+    description: 'Vérité (question) ou Contact (action) — version émotionnelle',
     icon: HelpCircle,
     color: 'bg-pink-100 text-pink-600',
   },
   {
     id: 'quiz',
-    name: 'Quiz Couple',
-    description: 'Testez vos connaissances sur votre partenaire',
+    name: 'Love Quiz Personnalisé',
+    description: 'Créez des questions sur vous, testez votre complicité',
     icon: Gamepad2,
     color: 'bg-purple-100 text-purple-600',
   },
   {
     id: 'daily-challenge',
-    name: 'Défi Quotidien',
-    description: 'Un nouveau défi chaque jour',
+    name: 'Daily Couple Challenges',
+    description: 'Un défi commun chaque jour — barre de progression à deux',
     icon: Sparkles,
     color: 'bg-yellow-100 text-yellow-600',
   },
   {
+    id: 'would-you-rather',
+    name: 'Tu préfères',
+    description: 'Swipe et comparez vos choix',
+    icon: Dices,
+    color: 'bg-indigo-100 text-indigo-600',
+  },
+  {
     id: 'more-less',
     name: 'Plus ou Moins',
-    description: 'Devinez le nombre',
+    description: 'Devinez le nombre ensemble',
     icon: TrendingDown,
     color: 'bg-green-100 text-green-600',
   },
   {
     id: 'wheel',
-    name: 'La Roue',
-    description: 'Faites tourner la roue pour votre défi',
+    name: 'Destiny Wheel',
+    description: 'Roue du destin — chargez l’énergie à deux, défi ou compliment',
     icon: RotateCw,
     color: 'bg-orange-100 text-orange-600',
+  },
+  {
+    id: 'compliments',
+    name: 'Compliment Rain',
+    description: 'Pluie de compliments — tap pour faire éclater les mots en cœurs',
+    icon: Heart,
+    color: 'bg-rose-100 text-rose-600',
+  },
+  {
+    id: 'telepathy',
+    name: 'Telepathy Love',
+    description: 'Même question, réponses en secret — révélation simultanée et halo si match',
+    icon: MessageCircle,
+    color: 'bg-amber-100 text-amber-600',
+  },
+  {
+    id: 'love-letter',
+    name: 'Love Letter Game',
+    description: 'Écris un message brut — l’IA le transforme en lettre romantique manuscrite',
+    icon: Sparkle,
+    color: 'bg-red-100 text-red-600',
+  },
+  {
+    id: 'mood-garden',
+    name: 'Mood Garden',
+    description: 'Chaque émotion plante une fleur dans votre jardin partagé',
+    icon: Flower2,
+    color: 'bg-emerald-100 text-emerald-600',
   },
 ];
 
@@ -58,9 +94,9 @@ interface ScoreEntry {
 }
 
 export default function GamesPage() {
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [coupleId, setCoupleId] = useState<string | null>(null);
+  const router = useRouter();
   const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
 
   useEffect(() => {
@@ -74,8 +110,7 @@ export default function GamesPage() {
   }, []);
 
   const handlePlayGame = (gameId: string) => {
-    setSelectedGame(gameId);
-    // TODO: Navigate to game page when implemented
+    router.push(`/dashboard/games/${gameId}`);
   };
 
   const getPlayerLabel = (playerId: string) => {
@@ -90,7 +125,7 @@ export default function GamesPage() {
       <div>
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Jeux 🎮</h1>
         <p className="text-gray-600">
-          7 jeux amusants pour renforcer votre lien avec votre partenaire
+          Connexion, sourire, complicité — chaque jeu crée des moments (soft, romantique, 18+ consensuel)
         </p>
       </div>
 

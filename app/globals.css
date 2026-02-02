@@ -124,3 +124,80 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Jeux premium : intro & conclusion */
+@keyframes game-intro-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes game-intro-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(236, 72, 153, 0.25);
+  }
+}
+
+@keyframes game-conclusion-celebration {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-game-intro {
+  animation: game-intro-fade-in 0.6s ease-out forwards;
+}
+
+.animate-game-intro-glow {
+  animation: game-intro-glow 2s ease-in-out infinite;
+}
+
+.animate-game-conclusion {
+  animation: game-conclusion-celebration 0.5s ease-out forwards;
+}
+
+/* Cartes jeux : apparition & flip */
+@keyframes game-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) rotateY(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotateY(0);
+  }
+}
+
+@keyframes game-card-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.animate-game-card-in {
+  animation: game-card-in 0.45s ease-out forwards;
+}
+
+.animate-game-card-pulse {
+  animation: game-card-pulse 2s ease-in-out infinite;
+}
+
+/* Boutons jeux : micro-interaction */
+.game-btn {
+  @apply transition-all duration-150 active:scale-[0.97];
+}
+.game-btn:focus-visible {
+  @apply ring-2 ring-pink-400 ring-offset-2;
+}

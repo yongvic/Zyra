@@ -24,6 +24,11 @@ model User {
   couplesAsUserTwo Couple[]       @relation("UserTwoCouples")
   memories         Memory[]
   gameScores       GameScore[]
+  startedGameSessions GameSession[] @relation("GameSessionStartedBy")
+  turnGameSessions    GameSession[] @relation("GameSessionTurnUser")
+  wonGameSessions     GameSession[] @relation("GameSessionWinnerUser")
+  gameMoves           GameMove[]
+  dailyChallengeCompletions DailyChallengeCompletion[]
   playlists        Playlist[]
   playlistSongs    PlaylistSong[] @relation("UserPlaylistSongs")
   sentMessages     ChatMessage[]  @relation("SenderMessages")
@@ -47,10 +52,12 @@ model Couple {
   userTwo          User             @relation("UserTwoCouples", fields: [userTwoId], references: [id])
   chatMessages     ChatMessage[]
   games            Game[]
+  gameSessions     GameSession[]
   memories         Memory[]
   playlists        Playlist[]
   coupleActivities CoupleActivity[]
   gameScores       GameScore[]
+  dailyChallengeAssignments DailyChallengeAssignment[]
 
   @@unique([userOneId, userTwoId])
   @@map("couples") // Explicitly map to the 'couples' table
@@ -167,4 +174,108 @@ model CoupleActivity {
   couple Couple @relation(fields: [coupleId], references: [id])
 
   @@map("couple_activities") // Explicitly map to the 'couple_activities' table
+}
+
+model GameSession {
+  id              String   @id @default(uuid())
+  coupleId        String   @map("couple_id")
+  gameType        String   @map("game_type")
+  status          String   @default("active") // active | completed
+  startedByUserId String   @map("started_by_user_id")
+  currentTurnUserId String? @map("current_turn_user_id")
+  winnerUserId    String?  @map("winner_user_id")
+  state           Json?    @map("state")
+  startedAt       DateTime @default(now()) @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  couple          Couple @relation(fields: [coupleId], references: [id])
+  startedByUser   User   @relation("GameSessionStartedBy", fields: [startedByUserId], references: [id])
+  currentTurnUser User?  @relation("GameSessionTurnUser", fields: [currentTurnUserId], references: [id])
+  winnerUser      User?  @relation("GameSessionWinnerUser", fields: [winnerUserId], references: [id])
+  moves           GameMove[]
+
+  @@index([coupleId, gameType, status])
+  @@map("game_sessions")
+}
+
+model GameMove {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  userId    String   @map("user_id")
+  moveIndex Int      @map("move_index")
+  moveType  String   @map("move_type")
+  moveData  Json?    @map("move_data")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session GameSession @relation(fields: [sessionId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, moveIndex])
+  @@index([sessionId])
+  @@map("game_moves")
+}
+
+model GameQuestion {
+  id        String   @id @default(uuid())
+  type      String   // truth | dare | quiz | would_you_rather | surprise | compliment | more_less
+  mode      String   @default("soft") // soft | romantic | hot
+  prompt    String
+  options   Json?    // e.g. { a: "...", b: "..." } or choices array
+  answer    Json?    // optional for quiz (e.g. correct choice)
+  tags      String[]
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type, mode, isActive])
+  @@map("game_questions")
+}
+
+model DailyChallenge {
+  id            String   @id @default(uuid())
+  mode          String   @default("soft") // soft | romantic | hot
+  challengeType String   @map("challenge_type") // text | emoji | photo | voice
+  prompt        String
+  tags          String[]
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  assignments   DailyChallengeAssignment[]
+
+  @@index([mode, isActive])
+  @@map("daily_challenges")
+}
+
+model DailyChallengeAssignment {
+  id          String   @id @default(uuid())
+  coupleId    String   @map("couple_id")
+  challengeId String   @map("challenge_id")
+  day         DateTime @map("day") // store day at 00:00
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  couple      Couple        @relation(fields: [coupleId], references: [id])
+  challenge   DailyChallenge @relation(fields: [challengeId], references: [id])
+  completions DailyChallengeCompletion[]
+
+  @@unique([coupleId, day])
+  @@index([coupleId, expiresAt])
+  @@map("daily_challenge_assignments")
+}
+
+model DailyChallengeCompletion {
+  id           String   @id @default(uuid())
+  assignmentId String   @map("assignment_id")
+  userId       String   @map("user_id")
+  payload      Json?    @map("payload")
+  submittedAt  DateTime @default(now()) @map("submitted_at")
+  validatedAt  DateTime? @map("validated_at")
+
+  assignment DailyChallengeAssignment @relation(fields: [assignmentId], references: [id])
+  user       User                   @relation(fields: [userId], references: [id])
+
+  @@unique([assignmentId, userId])
+  @@index([assignmentId])
+  @@map("daily_challenge_completions")
 }
